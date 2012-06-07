@@ -1,0 +1,25 @@
+= Köyhänmiehen Reittihärveli =
+
+Vaadin and OpenLayers Wrapper based implementation of app used by orienteers for drawing, comparing and analyzing routes.
+
+A public online version is available here:
+matti.virtuallypreinstalled.com/vrg/
+
+Development is on very early stages, on a "limited budget" as all hobby projects. If you have the skills and wills, all help is appreciated.
+
+= Development =
+
+There are currently two dependent projects that needs to be installed with "mvn install":
+
+ * https://github.com/mstahv/iofdomain
+ * http://vopenlayers.googlecode.com/svn/branches/clientanimations_matti
+
+Then the usual maven magic works:
+
+ * to build war: mvn install
+ * to debug in local server: mvn jetty:run-exploded
+
+Other notes to get started:
+
+ * Cache directory currently hardcoded to /Users/Shared/vrgcache/
+ * Use IDE like Eclipse with M2e or Netbeans

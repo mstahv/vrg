@@ -1,0 +1,14 @@
+<module>
+ 	<!--
+	    This file is automatically updated based on new dependencies by the
+	    goal "vaadin:update-widgetset".
+	-->     
+ 
+	<!-- Inherit DefaultWidgetSet -->
+	<inherits name="com.vaadin.terminal.gwt.DefaultWidgetSet" /> 
+
+<!--    <set-property name="user.agent" value="safari"/>       -->
+
+    <inherits name="org.vaadin.vol.VolWidgetsetWithHostedScript" />
+    
+</module>
