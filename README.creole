@@ -3,7 +3,8 @@
 Vaadin and OpenLayers Wrapper based implementation of app used by orienteers for drawing, comparing and analyzing routes.
 
 A public online version is available here:
-matti.virtuallypreinstalled.com/vrg/
+
+ * matti.virtuallypreinstalled.com/vrg/
 
 Development is on very early stages, on a "limited budget" as all hobby projects. If you have the skills and wills, all help is appreciated.
 
