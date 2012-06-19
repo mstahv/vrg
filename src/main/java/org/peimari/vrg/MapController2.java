@@ -289,6 +289,7 @@ public class MapController2 extends VerticalLayout implements Component,
 		competitors.setContainerDataSource(competitorContainer);
 		competitors.setVisibleColumns(new Object[] { "name", "time",
 				"routePoints" });
+		competitors.setColumnExpandRatio("name", 1);
 
 		while (!drawnRoutes.isEmpty()) {
 			Vector vector = drawnRoutes.remove(drawnRoutes.keySet().iterator()

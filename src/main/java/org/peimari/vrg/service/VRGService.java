@@ -1,6 +1,7 @@
 package org.peimari.vrg.service;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -8,17 +9,21 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.ref.WeakReference;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -38,10 +43,14 @@ import org.peimari.rgdomain.Point;
 
 public class VRGService {
 
+	private static final int MAXROWLENGTH = 1024*100;
+
 	static LinkedHashSet<URL> latestGadgets = new LinkedHashSet<URL>();
 
 	private final URL root;
 	private final File cacheRoot;
+
+	private String md5Hex;
 
 	public static URL[] latestUrls() {
 		synchronized (latestGadgets) {
@@ -51,8 +60,9 @@ public class VRGService {
 
 	public VRGService(URL root) {
 		this.root = root;
+		md5Hex = DigestUtils.md5Hex(root.toString());
 		cacheRoot = new File("/Users/Shared/vrgcache/"
-				+ DigestUtils.md5Hex(root.toString()));
+				+ md5Hex);
 		cacheRoot.mkdirs();
 		synchronized (latestGadgets) {
 			latestGadgets.remove(root);
@@ -60,9 +70,23 @@ public class VRGService {
 		}
 	}
 
+	private static Map<String,Map<Integer, WeakReference<Competition>>> cache = Collections.synchronizedMap(new HashMap<String,Map<Integer, WeakReference<Competition>>>());
+	
 	public Competition load(int id) {
 		try {
-			return readCompetition(id);
+			Map<Integer, WeakReference<Competition>> map = cache.get(md5Hex);
+			if(map == null) {
+				map = Collections.synchronizedMap(new HashMap<Integer, WeakReference<Competition>>());
+				cache.put(md5Hex, map);
+			}
+			WeakReference<Competition> weakReference = map.get(id);
+			if(weakReference != null && weakReference.get() != null) {
+				return weakReference.get();
+			}
+			Competition readCompetition = readCompetition(id);
+			weakReference = new WeakReference<Competition>(readCompetition);
+			map.put(id, weakReference);
+			return readCompetition;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -133,6 +157,9 @@ public class VRGService {
 					.getCompetitionClass(Integer.parseInt(flds[0]));
 			Competitor competitor = competitionClass.getCompetitor(Integer
 					.parseInt(flds[1]));
+			if(competitor == null) {
+				continue;
+			}
 			String[] pStr = flds[4].split("N");
 			Point[] routePoints = new Point[pStr.length - 1];
 			for (int i = 1; i < pStr.length; i++) {
@@ -147,12 +174,16 @@ public class VRGService {
 	}
 
 	private void readCompetitors(Competition competition) throws IOException {
-		List<String> lines = IOUtils.readLines(inputStream("kilpailijat_"
-				+ competition.getId() + ".txt"), "iso8859-1");
-		for (String l : lines) {
+		BufferedReader bufferedReader = new BufferedReader(
+				new InputStreamReader(inputStream("kilpailijat_"
+						+ competition.getId() + ".txt"), "iso8859-1"));
+		String l = null;
+		
+		while ((l = safeReadNextLine(bufferedReader)) != null) {
 			String[] flds = l.split("\\|");
 			Competitor c = new Competitor();
 			c.setId(Integer.parseInt(flds[0]));
+			System.out.println("Read competitor" + c.getId());
 			c.setName(flds[3]);
 			// 4 ok disq?? start time?
 			try {
@@ -161,7 +192,7 @@ public class VRGService {
 			} catch (NumberFormatException e) {
 			}
 
-			if (flds.length > 8) {
+			if (false && flds.length > 8) {
 				String[] split = flds[8].split(";");
 				int[] splits = new int[split.length];
 				for (int i = 1; i < splits.length; i++) {
@@ -178,6 +209,34 @@ public class VRGService {
 
 		}
 
+	}
+
+	/**
+	 * Safe read next line. At least Jukola 2012 has some insane rows that will eat insane amounts of memory.
+	 * 
+	 * @param bufferedReader
+	 * @return
+	 * @throws IOException 
+	 */
+	private String safeReadNextLine(BufferedReader bufferedReader) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		int readCount = 0;
+		while(true) {
+			int read = bufferedReader.read();
+			if(read == -1) {
+				return null;
+			}
+			if(read == '\n') {
+				break;
+			}
+			if(readCount < MAXROWLENGTH) {
+				sb.appendCodePoint(read);
+				readCount++;
+			}
+		}
+		
+		
+		return sb.toString();
 	}
 
 	private InputStream inputStream(String string) throws FileNotFoundException {
