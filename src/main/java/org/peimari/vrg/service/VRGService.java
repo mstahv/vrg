@@ -382,6 +382,7 @@ public class VRGService {
 		for (File file : list) {
 			file.delete();
 		}
+		cache.remove(md5Hex);
 	}
 
 	public ImageDetails getMapDetails(Competition competition) {
