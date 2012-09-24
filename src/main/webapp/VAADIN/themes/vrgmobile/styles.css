@@ -1,0 +1,9 @@
+@import "../base/styles.css";
+
+.v-table-row-noroute {
+	color: #666 !important;
+}
+
+.v-table-row-drawn {
+	font-weight: bold;
+}

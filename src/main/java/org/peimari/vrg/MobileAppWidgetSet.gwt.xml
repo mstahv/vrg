@@ -1,0 +1,11 @@
+<module>
+	<!-- Inherit DefaultWidgetSet -->
+	<inherits name="com.vaadin.terminal.gwt.DefaultWidgetSet" /> 
+
+<!--    <set-property name="user.agent" value="safari"/>       -->
+
+    <inherits name="org.vaadin.vol.VolWidgetsetWithHostedScript" />
+    <inherits name="com.vaadin.addon.touchkit.gwt.TouchKitWidgetSet" />
+    
+</module>
+

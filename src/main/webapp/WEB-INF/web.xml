@@ -8,15 +8,24 @@
     </context-param>
     <servlet>
         <servlet-name>Vaadin Application Servlet</servlet-name>
-        <servlet-class>com.vaadin.terminal.gwt.server.ApplicationServlet</servlet-class>
+        <servlet-class>com.vaadin.addon.touchkit.server.TouchKitApplicationServlet</servlet-class>
         <init-param>
             <description>Vaadin application class to start</description>
-            <param-name>application</param-name>
+            <param-name>fallbackApplication</param-name>
             <param-value>org.peimari.vrg.VRGApplication</param-value>
         </init-param>
         <init-param>
-            <param-name>widgetset</param-name>
+            <param-name>fallbackWidgetset</param-name>
             <param-value>org.peimari.vrg.AppWidgetSet</param-value>
+        </init-param>
+        <init-param>
+            <description>Vaadin application class to start</description>
+            <param-name>application</param-name>
+            <param-value>org.peimari.vrg.VRGMobileApplication</param-value>
+        </init-param>
+        <init-param>
+            <param-name>widgetset</param-name>
+            <param-value>org.peimari.vrg.MobileAppWidgetSet</param-value>
         </init-param>
     </servlet>
     <servlet-mapping>

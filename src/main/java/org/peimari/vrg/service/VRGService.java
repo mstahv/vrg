@@ -189,7 +189,7 @@ public class VRGService {
 			try {
 				int time = Integer.parseInt(flds[5]);
 				c.setTime(time);
-			} catch (NumberFormatException e) {
+			} catch (Exception e) {
 			}
 
 			if (false && flds.length > 8) {

@@ -3,5 +3,8 @@
 
 .project
 .settings/
+src/main/webapp/VAADIN/widgetsets/
 target/
 .gitignore~
+
+.DS_Store
