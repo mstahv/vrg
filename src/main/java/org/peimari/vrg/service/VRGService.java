@@ -2,6 +2,7 @@ package org.peimari.vrg.service;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -25,8 +27,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.stream.ImageInputStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -43,7 +49,7 @@ import org.peimari.rgdomain.Point;
 
 public class VRGService {
 
-	private static final int MAXROWLENGTH = 1024*100;
+	private static final int MAXROWLENGTH = 1024 * 100;
 
 	static LinkedHashSet<URL> latestGadgets = new LinkedHashSet<URL>();
 
@@ -58,11 +64,14 @@ public class VRGService {
 		}
 	}
 
+	public URL getRoot() {
+		return root;
+	}
+
 	public VRGService(URL root) {
 		this.root = root;
 		md5Hex = DigestUtils.md5Hex(root.toString());
-		cacheRoot = new File("/Users/Shared/vrgcache/"
-				+ md5Hex);
+		cacheRoot = new File("/Users/Shared/vrgcache/" + md5Hex);
 		cacheRoot.mkdirs();
 		synchronized (latestGadgets) {
 			latestGadgets.remove(root);
@@ -70,17 +79,19 @@ public class VRGService {
 		}
 	}
 
-	private static Map<String,Map<Integer, WeakReference<Competition>>> cache = Collections.synchronizedMap(new HashMap<String,Map<Integer, WeakReference<Competition>>>());
-	
+	private static Map<String, Map<Integer, WeakReference<Competition>>> cache = Collections
+			.synchronizedMap(new HashMap<String, Map<Integer, WeakReference<Competition>>>());
+
 	public Competition load(int id) {
 		try {
 			Map<Integer, WeakReference<Competition>> map = cache.get(md5Hex);
-			if(map == null) {
-				map = Collections.synchronizedMap(new HashMap<Integer, WeakReference<Competition>>());
+			if (map == null) {
+				map = Collections
+						.synchronizedMap(new HashMap<Integer, WeakReference<Competition>>());
 				cache.put(md5Hex, map);
 			}
 			WeakReference<Competition> weakReference = map.get(id);
-			if(weakReference != null && weakReference.get() != null) {
+			if (weakReference != null && weakReference.get() != null) {
 				return weakReference.get();
 			}
 			Competition readCompetition = readCompetition(id);
@@ -157,7 +168,7 @@ public class VRGService {
 					.getCompetitionClass(Integer.parseInt(flds[0]));
 			Competitor competitor = competitionClass.getCompetitor(Integer
 					.parseInt(flds[1]));
-			if(competitor == null) {
+			if (competitor == null) {
 				continue;
 			}
 			String[] pStr = flds[4].split("N");
@@ -178,7 +189,7 @@ public class VRGService {
 				new InputStreamReader(inputStream("kilpailijat_"
 						+ competition.getId() + ".txt"), "iso8859-1"));
 		String l = null;
-		
+
 		while ((l = safeReadNextLine(bufferedReader)) != null) {
 			String[] flds = l.split("\\|");
 			Competitor c = new Competitor();
@@ -212,30 +223,31 @@ public class VRGService {
 	}
 
 	/**
-	 * Safe read next line. At least Jukola 2012 has some insane rows that will eat insane amounts of memory.
+	 * Safe read next line. At least Jukola 2012 has some insane rows that will
+	 * eat insane amounts of memory.
 	 * 
 	 * @param bufferedReader
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	private String safeReadNextLine(BufferedReader bufferedReader) throws IOException {
+	private String safeReadNextLine(BufferedReader bufferedReader)
+			throws IOException {
 		StringBuilder sb = new StringBuilder();
 		int readCount = 0;
-		while(true) {
+		while (true) {
 			int read = bufferedReader.read();
-			if(read == -1) {
+			if (read == -1) {
 				return null;
 			}
-			if(read == '\n') {
+			if (read == '\n') {
 				break;
 			}
-			if(readCount < MAXROWLENGTH) {
+			if (readCount < MAXROWLENGTH) {
 				sb.appendCodePoint(read);
 				readCount++;
 			}
 		}
-		
-		
+
 		return sb.toString();
 	}
 
@@ -359,6 +371,40 @@ public class VRGService {
 				URL url = new URL(root + file.getName());
 				file.createNewFile();
 				IOUtils.copy(url.openStream(), new FileOutputStream(file));
+				if (file.getName().endsWith(".jpg")) {
+
+					// Create an image input stream on the image
+					ImageInputStream iis = ImageIO.createImageInputStream(file);
+
+					// Find all image readers that recognize the image format
+					Iterator<ImageReader> iter = ImageIO.getImageReaders(iis);
+					if (!iter.hasNext()) {
+						// No readers found
+						throw new RuntimeException("Couldn't read map image");
+					}
+
+					// Use the first reader
+					ImageReader reader = (ImageReader) iter.next();
+
+					if (reader.getFormatName().equals("gif")) {
+						System.out.println("Converting to JPEG for ios..."
+								+ file.length());
+						// convert to JPG as iOS has limitation for gif sizes
+						BufferedImage bi = ImageIO.read(iis);
+						ImageWriter writer = ImageIO
+								.getImageWritersByFormatName("jpeg").next();
+						ImageWriteParam param = writer.getDefaultWriteParam();
+						param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+						param.setCompressionQuality(0.5f);
+						FileImageOutputStream output = new FileImageOutputStream(
+								file);
+						writer.setOutput(output);
+						IIOImage iioImage = new IIOImage(bi, null, null);
+						writer.write(null, iioImage, param);
+						System.out.println("Now " + file.length());
+					}
+				}
+
 			} catch (MalformedURLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -370,6 +416,72 @@ public class VRGService {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void persistRoute(Competitor competitor, CompetitionClass cClass,
+			Competition competition) {
+		try {
+			org.peimari.rgdomain.Point[] controlPoints = cClass.getCourse()
+					.getControlPoints();
+
+			StringBuilder sb = new StringBuilder();
+			for (org.peimari.rgdomain.Point point : competitor.getRoutePoints()) {
+				sb.append("N");
+				sb.append((int) point.getLon());
+				sb.append(",");
+				sb.append((int) point.getLat());
+			}
+			sb.append("|");
+			for (int i = 0; i < controlPoints.length; i++) {
+				org.peimari.rgdomain.Point point = controlPoints[i];
+				sb.append("N");
+				sb.append((int) point.getLon());
+				sb.append(",");
+				sb.append((int) point.getLat());
+			}
+
+			// **********
+			//
+			// "act" == "tallennapiirros"
+			// "rdata" == "N426;-247N407;-256N398;-257...|ROUTEPOINTS"
+			//
+			// print HANDLE $in{'rataid'}."|".$in{'id'}."|
+			// $in{'suunnistaja'}|$in{'hajonta'}|$reitti|$rastit\n";
+
+			String urlParameters = "act=tallennapiirros&eventid="
+					+ competition.getId() + "&rataid="
+					+ cClass.getCourse().getId() + "&id=" + competitor.getId()
+					+ "&suunnistaja=foobar&hajonta=&rdata=" + sb.toString();
+
+			String requesturl = root.toString().substring(0,
+					root.toString().indexOf("/kartat"))
+					+ "/cgi-bin/reitti.cgi";
+			URL url = new URL(requesturl);
+			HttpURLConnection connection = (HttpURLConnection) url
+					.openConnection();
+			connection.setDoOutput(true);
+			connection.setDoInput(true);
+			connection.setInstanceFollowRedirects(false);
+			connection.setRequestMethod("POST");
+			connection.setRequestProperty("Content-Type",
+					"application/x-www-form-urlencoded");
+			connection.setRequestProperty("charset", "utf-8");
+			connection.setRequestProperty("Content-Length",
+					"" + Integer.toString(urlParameters.getBytes().length));
+			connection.setUseCaches(false);
+
+			DataOutputStream wr;
+			wr = new DataOutputStream(connection.getOutputStream());
+			wr.writeBytes(urlParameters);
+			wr.flush();
+			wr.close();
+			InputStream inputStream = connection.getInputStream();
+			IOUtils.copy(inputStream, System.err);
+			connection.disconnect();
+		} catch (Exception e) {
+			throw new RuntimeException("Could not save route!", e);
+		}
+
 	}
 
 	public void clearCache() {
@@ -413,8 +525,10 @@ public class VRGService {
 					e.printStackTrace();
 				}
 			}
-			throw new RuntimeException();
-		} else {
+			file.delete();
+		}
+
+		{
 			InputStream o = null;
 			try {
 				o = openMapStream(competition.getMap());

@@ -23,7 +23,7 @@ public class GadgetView extends NavigationView {
 	public GadgetView(URL baseurl) {
 		setCaption(baseurl.getHost());
 		service = new VRGService(baseurl);
-		
+
 		Button button = new Button("Clear cache");
 		button.addListener(new Button.ClickListener() {
 			@Override
@@ -33,16 +33,17 @@ public class GadgetView extends NavigationView {
 			}
 		});
 		setRightComponent(button);
-		
+
 		verticalComponentGroup = new VerticalComponentGroup();
-		
+
 		buildList();
-		
+
 		setContent(verticalComponentGroup);
-		
+
 	}
-	
-	static DateFormat sdf = SimpleDateFormat.getDateInstance(SimpleDateFormat.SHORT);
+
+	static DateFormat sdf = SimpleDateFormat
+			.getDateInstance(SimpleDateFormat.SHORT);
 
 	private void buildList() {
 		verticalComponentGroup.removeAllComponents();
@@ -54,10 +55,25 @@ public class GadgetView extends NavigationView {
 			navigationButton.addListener(new ClickListener() {
 				@Override
 				public void buttonClick(ClickEvent event) {
-					getNavigationManager().navigateTo(new CompetitionView(competition, service));
+					getNavigationManager().navigateTo(
+							new CompetitionView(competition, service));
 				}
 			});
 			verticalComponentGroup.addComponent(navigationButton);
+		}
+	}
+
+	public void show(int competitionId, int classId, int routeId) {
+		List<Competition> competitions = service.getCompetitions();
+		for (Competition competition : competitions) {
+			if (competition.getId() == competitionId) {
+				CompetitionView c = new CompetitionView(competition, service);
+				getNavigationManager().navigateTo(c);
+				c.getNavigationManager().navigateTo(
+						new CompetitionView(competition, service));
+				c.show(classId, routeId);
+				break;
+			}
 		}
 	}
 

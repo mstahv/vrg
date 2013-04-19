@@ -56,6 +56,18 @@ public class InitialView extends NavigationView implements Component {
 				"<div style='font-size: x-small; text-align:right;'>"
 						+ SessionCounter.getAndIncrement() + " sessions.</div>",
 				Label.CONTENT_XHTML));
+		
+		
+		Button button = new Button("Open in 'desktop mode'");
+		button.setStyleName(Button.STYLE_LINK);
+		button.addListener(new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				getWindow().showNotification("TODO");
+				
+			}
+		});
+		l.addComponent(button);
 
 		setContent(l);
 

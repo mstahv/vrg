@@ -145,6 +145,7 @@ public class MapView<E> extends NavigationView implements
 	}
 
 	private int colorIndex = 0;
+	private Competitor competitorBeingDrawn;
 
 	private String getColor() {
 		return Colors.getByIndex(colorIndex++);
